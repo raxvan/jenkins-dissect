@@ -26,27 +26,26 @@ def main_latest_successfull_build(args):
 	latest_job_data = query_last_successful_data(job_info)
 
 	job_name_upper = args.job_name.upper()
+
+	#info
 	f = open(f"{args.job_name}.sh", "w")
 	f.write("#!/bin/bash\n")
 
-	f.write("#METADATA:\n")
-	f.write("export {0}_BUILD_NUMBER={1}\n".format(job_name_upper,latest_job_data['number']))
+	f.write("export JOB_BUILD_NUMBER={0}\n".format(latest_job_data['number']))
 	for b in latest_job_data['actions']:
 		if typeof(b,"hudson.plugins.git.util.BuildData"):
-			f.write("export {0}_REVISION={1}\n".format(job_name_upper,b['lastBuiltRevision']["SHA1"]))
+			f.write("export JOB_REVISION={0}\n".format(b['lastBuiltRevision']["SHA1"]))
+			f.write("export JOB_URL={0}\n".format(b['remoteUrls'][0]))
 			break;
+	f.close()
 
-	f.write("#ARTIFACTS:\n")
-	artifact_index = 0
+	#downlod artifacts
+	f = open(f"download_artifacts_{args.job_name}.sh", "w")
+	f.write("#!/bin/bash\n")
 	for a in latest_job_data['artifacts']:
-
-		f.write("export {0}_ARTIFACT{1}={2}\n".format(
-			job_name_upper,
-			artifact_index,
+		f.write("curl -LO {0}\n".format(
 			urlparse.urljoin(urlparse.urljoin(latest_job_data['url'],"artifact/"), a['relativePath'])
 		))
-		artifact_index += 1
-
 	f.close()
 
 def main(args):
